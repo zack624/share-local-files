@@ -1,0 +1,91 @@
+<!--页面展示文件列表，提供上传文件和下载文件的功能，支持写入文本保存到文件-->
+<!--TODO 调整页面布局-->
+<!--TODO 分别适配手机和电脑-->
+<html>
+    <head>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width,initial-scale=1.0,
+        minimum-scale=1.0,maximum-scale=1.0,user-scalable=yes"/>
+        <title>电脑手机互传工具</title>
+        <style>
+            .div{
+                float: left;
+            }
+            .clear{
+                clear:both;
+            }
+            @media (min-width: 0px) and (max-width:768px){
+                #textCopy{
+                    width:253px;
+                    height:15%;
+                }
+            }
+            @media (min-width: 768px){
+                #textCopy{
+                    width:253px;
+                    height:20%;
+                }
+                hr{
+                    width: 50%;
+                }
+            }
+
+        </style>
+    </head>
+    <body>
+        <h1>电脑手机互传工具</h1>
+        <!--文本填充框-->
+        <!--提交按钮-->
+        <div>
+            <div class="div">复制文本：</div>
+            <div class="div">
+                <form action="/uploadCopy" method="POST">
+                    <!--调整更大，显示更多内容-->
+                    <!--CopyText是字节数组，需要打印成string-->
+                    <textarea name="textCopy" id="textCopy">{{printf "%s" .CopyText}}</textarea>
+                    <input type="submit" value="远程复制">
+                </form>
+            </div>
+        </div>
+        <div class="clear">
+            <!--上传文件按钮-->
+            <!--提交按钮-->
+            <div class="div">上传文件：</div>
+            <div class="div">
+                <form action="/uploadFile" method="POST" enctype="multipart/form-data">
+                    <input type="file" name="fileUpload" width="">
+                    <input type="submit" value="上传文件">
+                </form>
+                <!--TODO 清空文件列表-->
+                <!--TODO 复制到粘贴板功能-->
+                <!--TODO 清空文本框-->
+                <!--TODO 显示文件上传进度条-->
+            </div>
+        </div>
+        <hr class="clear" align="left">
+        <!--展示的表格-->
+        <div class="clear">
+            <table class="margin">
+                <tr>
+                    <th>文件名</th>
+                    <th>大小</th>
+                    <th>修改时间</th>
+                    <th>操作</th>
+                </tr>
+                <!--模板中的.代表变量本身-->
+                {{range $idx,$v := .Files}}
+                <tr>
+                    <td>{{$v.Name}}</td>
+                    <td>{{$v.Size}}</td>
+                    <!--FIXME 时间格式化-->
+                    <td>{{printf "%-19.19s" $v.Time}}</td>
+                    <td>
+                        <a href="/downloadFile/{{$v.Name}}" download="{{$v.Name}}">下载</a>
+                        <a href="/deleteFile/{{$v.Name}}">删除</a>
+                    </td>
+                </tr>
+                {{end}}
+            </table>
+        </div>
+    </body>
+</html>
