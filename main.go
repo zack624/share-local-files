@@ -63,7 +63,7 @@ func main() {
 	http.HandleFunc("/uploadCopy", uploadCopyTextHandler)
 	http.HandleFunc("/downloadFile/", downloadFileHandler)
 	http.HandleFunc("/deleteFile/", deleteFileHandler)
-	// TODO 调用浏览器打开网址
+	// 调用浏览器打开网址
 	go openBrowser("http://" + ip)
 	log.Fatal(http.ListenAndServe(ip+":80", nil))
 }
@@ -196,6 +196,5 @@ func saveData(path string, data []byte) error {
 // 在http.ListenAndServe之后运行
 func openBrowser(url string) {
 	time.Sleep(3 * time.Second)
-	// fmt.Println("调用浏览器打开网址...")
 	exec.Command("cmd", "/c", "start", url).Start()
 }

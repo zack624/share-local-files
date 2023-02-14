@@ -29,8 +29,22 @@
                     width: 50%;
                 }
             }
-
         </style>
+        <script type="text/javascript">
+            // 清空文本框
+            function clear_text(){
+                document.getElementById("textCopy").value = ""
+            };
+            // 复制到粘贴板
+            function copy_clipboard(){
+                const textCopy = document.querySelector("#textCopy")
+                textCopy.select()
+                if (document.execCommand("copy")){
+                    document.execCommand("copy")
+                    console.log("复制成功")
+                }
+            }
+        </script>
     </head>
     <body>
         <h1>电脑手机互传工具</h1>
@@ -40,10 +54,18 @@
             <div class="div">复制文本：</div>
             <div class="div">
                 <form action="/uploadCopy" method="POST">
-                    <!--调整更大，显示更多内容-->
-                    <!--CopyText是字节数组，需要打印成string-->
-                    <textarea name="textCopy" id="textCopy">{{printf "%s" .CopyText}}</textarea>
-                    <input type="submit" value="远程复制">
+                    <div>
+                        <!--调整更大，显示更多内容-->
+                        <!--CopyText是字节数组，需要打印成string-->
+                        <textarea name="textCopy" id="textCopy">{{printf "%s" .CopyText}}</textarea>
+                    </div>
+                    <div>
+                        <input type="submit" value="远程复制">
+                        <!--清空文本框-->
+                        <input type="button" id="clearText" value="清空文本框" onclick="clear_text()">
+                        <!--复制到粘贴板功能-->
+                        <input type="button" id="copy2Clipboard" value="复制到粘贴板" onclick="copy_clipboard()">
+                    </div>
                 </form>
             </div>
         </div>
@@ -53,12 +75,12 @@
             <div class="div">上传文件：</div>
             <div class="div">
                 <form action="/uploadFile" method="POST" enctype="multipart/form-data">
-                    <input type="file" name="fileUpload" width="">
+                    <input type="file" name="fileUpload">
                     <input type="submit" value="上传文件">
                 </form>
                 <!--TODO 清空文件列表-->
-                <!--TODO 复制到粘贴板功能-->
-                <!--TODO 清空文本框-->
+                <!--TODO 多个文件上传-->
+                <!--TODO 一键下载-->
                 <!--TODO 显示文件上传进度条-->
             </div>
         </div>
