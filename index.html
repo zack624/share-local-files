@@ -44,6 +44,10 @@
                     console.log("复制成功")
                 }
             }
+            // 请求后台，清空文件列表
+            function delete_files(){
+                window.location.href = "/deleteFiles"
+            }
         </script>
     </head>
     <body>
@@ -69,6 +73,7 @@
                 </form>
             </div>
         </div>
+        <hr class="clear" align="left">
         <div class="clear">
             <!--上传文件按钮-->
             <!--提交按钮-->
@@ -77,14 +82,14 @@
                 <form action="/uploadFile" method="POST" enctype="multipart/form-data">
                     <input type="file" name="fileUpload">
                     <input type="submit" value="上传文件">
+                    <!--请求后台，清空文件列表-->
+                    <input type="button" value="清空文件列表" onclick="delete_files()">
                 </form>
-                <!--TODO 清空文件列表-->
                 <!--TODO 多个文件上传-->
                 <!--TODO 一键下载-->
                 <!--TODO 显示文件上传进度条-->
             </div>
         </div>
-        <hr class="clear" align="left">
         <!--展示的表格-->
         <div class="clear">
             <table class="margin">

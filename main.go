@@ -18,7 +18,7 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/exec"
+	"path"
 	"strings"
 	"time"
 )
@@ -54,15 +54,16 @@ func main() {
 	}
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 	ip = strings.Split(localAddr.String(), ":")[0]
-	//log.Printf("本机IP：%s", ip)
+	log.Printf("本机IP：%s", ip)
 	fmt.Printf("请在电脑端和手机浏览器打开网址：http://%s", ip)
 	// 添加路由，绑定url和HandlerFunc
-	//log.Print("添加路由：/, /uploadFile, /uploadCopy, /downloadFile, /deleteFile")
+	log.Print("添加路由：/, /uploadFile, /uploadCopy, /downloadFile, /deleteFile")
 	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/uploadFile", uploadFileHandler)
 	http.HandleFunc("/uploadCopy", uploadCopyTextHandler)
 	http.HandleFunc("/downloadFile/", downloadFileHandler)
 	http.HandleFunc("/deleteFile/", deleteFileHandler)
+	http.HandleFunc("/deleteFiles", deleteFilesHandler)
 	// 调用浏览器打开网址
 	go openBrowser("http://" + ip)
 	log.Fatal(http.ListenAndServe(ip+":80", nil))
@@ -70,9 +71,9 @@ func main() {
 
 // 主页，刷新加载data内存
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	//log.Print("请求：/")
+	log.Print("请求：/")
 	// 扫描本地目录下的所有文件，初始化files
-	//log.Printf("扫描目录：%s", dir)
+	log.Printf("扫描目录：%s", dir)
 	c, err := os.ReadDir(dir)
 	if err != nil {
 		panic(err)
@@ -96,12 +97,13 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 // 上传文件时，直接添加在目录中，返回index.html
 func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	// 解析POST请求，enctype="multipart/form-data"，得到文件流
-	//log.Print("请求：/uploadFile")
+	log.Print("请求：/uploadFile")
 	err := r.ParseMultipartForm(500 << 20) // FIXME 限制上传文件大小500MB，但是不生效？
 	if err != nil {
 		log.Fatal("ParseMultipartForm failed!")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+	// FIXME 未选择文件就点击上传会报错
 	file, fileHeader, err := r.FormFile("fileUpload")
 	if err != nil {
 		log.Fatal("Http request Form file err!")
@@ -122,7 +124,7 @@ func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 	_ = len
-	//log.Printf("上传文件：%s，文件大小：%d", fileName, len)
+	log.Printf("上传文件：%s，文件大小：%d", fileName, len)
 	// 返回index
 	http.Redirect(w, r, "/", http.StatusFound)
 }
@@ -142,7 +144,7 @@ func uploadCopyTextHandler(w http.ResponseWriter, r *http.Request) {
 // 下载文件
 // 请求URL模式：/downloadFile/filename
 func downloadFileHandler(w http.ResponseWriter, r *http.Request) {
-	//log.Printf("请求：%s", r.URL.Path)
+	log.Printf("请求：%s", r.URL.Path)
 	fileName := r.URL.Path[len("/downloadFile/"):]
 	file, err := os.ReadFile(dir + fileName)
 	if err != nil {
@@ -150,14 +152,16 @@ func downloadFileHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 	w.Write(file)
+	log.Printf("下载文件：%s", fileName)
 }
 
 // 删除文件
 // 请求URL模式：/deleteFile/filename
 func deleteFileHandler(w http.ResponseWriter, r *http.Request) {
-	//log.Printf("请求：%s", r.URL.Path)
+	log.Printf("请求：%s", r.URL.Path)
 	fileName := r.URL.Path[len("/deleteFile/"):]
 	err := os.Remove(dir + fileName)
+	log.Printf("删除文件：%s", fileName)
 	if err != nil {
 		log.Fatal("Remove file failed!")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -165,36 +169,22 @@ func deleteFileHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
-// 渲染HTML模板公共函数
-func renderTemplate(w http.ResponseWriter, templateName string, data any) {
-	err := templates.ExecuteTemplate(w, templateName, data)
+// 清空文件列表
+// 请求URL模式：/deleteFiles
+func deleteFilesHandler(w http.ResponseWriter, r *http.Request) {
+	// 删除working_dir下所有文件
+	log.Printf("请求：%s", r.URL.Path)
+	files, _ := os.ReadDir(dir)
+	var err error
+	for _, v := range files {
+		fileName := path.Join(dir, v.Name())
+		err = os.Remove(fileName)
+		log.Printf("删除文件：%s", fileName)
+	}
 	if err != nil {
+		log.Fatal("Remove all files failed!")
+		// FIXME 错误跳转到404网页
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-}
-
-// 从本地文件加载数据到内存，CopyText
-func loadData(path string) ([]byte, error) {
-	bytes, err := os.ReadFile(path)
-	if err != nil {
-		log.Fatal("Open file failed!")
-		return nil, err
-	}
-	return bytes, nil
-}
-
-// 内存保存数据到本地文件
-func saveData(path string, data []byte) error {
-	err := os.WriteFile(path, data, 0600)
-	if err != nil {
-		log.Fatal("Write file failed!")
-	}
-	return err
-}
-
-// 起新线程调用浏览器
-// 在http.ListenAndServe之后运行
-func openBrowser(url string) {
-	time.Sleep(3 * time.Second)
-	exec.Command("cmd", "/c", "start", url).Start()
+	http.Redirect(w, r, "/", http.StatusFound)
 }
