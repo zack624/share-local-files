@@ -11,6 +11,7 @@ package main
 // 6.读取当前机器IP，打印网址
 
 import (
+	"archive/zip"
 	"fmt"
 	"html/template"
 	"io"
@@ -45,7 +46,7 @@ var (
 )
 
 func main() {
-	fmt.Println("电脑手机互传工具")
+	fmt.Println("文件传输助手")
 	// 读取当前机器IP，打印网址
 	ip := "localhost"
 	conn, err := net.Dial("udp", "8.8.8.8:53")
@@ -62,6 +63,7 @@ func main() {
 	http.HandleFunc("/uploadFile", uploadFileHandler)
 	http.HandleFunc("/uploadCopy", uploadCopyTextHandler)
 	http.HandleFunc("/downloadFile/", downloadFileHandler)
+	http.HandleFunc("/downloadSelectedFiles", downloadSelectedFilesHandler)
 	http.HandleFunc("/deleteFile/", deleteFileHandler)
 	http.HandleFunc("/deleteFiles", deleteFilesHandler)
 	// 调用浏览器打开网址
@@ -133,7 +135,6 @@ func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 // 复制文本时，直接修改存储文本文件的内容，返回index.html
 func uploadCopyTextHandler(w http.ResponseWriter, r *http.Request) {
 	// 获取请求的textCopy参数
-	//r.ParseForm()
 	textCopy := r.FormValue("textCopy")
 	// 持久化copyStorage文件
 	saveData(copyStorage, []byte(textCopy))
@@ -153,6 +154,59 @@ func downloadFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write(file)
 	log.Printf("下载文件：%s", fileName)
+}
+
+// 下载勾选文件
+// 把勾选文件打包成ZIP包，返回
+// 如果只勾选一个文件，则直接返回该文件
+func downloadSelectedFilesHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("请求：%s", r.URL.Path)
+	r.ParseForm()
+	files := r.Form["selectedFile"]
+	// 设置Content-Type为下载二进制文件
+	w.Header().Set("Content-Type", "application/octet-stream")
+	if len(files) == 1 {
+		fileName := files[0]
+		file, err := os.ReadFile(dir + fileName)
+		if err != nil {
+			log.Fatal("Read file failed!")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		w.Header().Set("Content-Disposition", "attachment; filename="+fileName)
+		w.Write(file)
+		log.Printf("批量下载文件：%s", fileName)
+	} else {
+		zipTempFile := "批量下载.zip"
+		zipFile, err := os.Create(zipTempFile)
+		if err != nil {
+			log.Fatal("Create zip file failed!")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		zipw := zip.NewWriter(zipFile)
+		for _, fileName := range files {
+			file, err := os.Open(dir + fileName)
+			if err != nil {
+				log.Fatal("Create file failed!")
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+			wr, err := zipw.Create(fileName)
+			if err != nil {
+				log.Fatal("Failed to create entry in zip file!")
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+			if _, err := io.Copy(wr, file); err != nil {
+				log.Fatal("Failed to write to zip!")
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+			file.Close()
+		}
+		zipw.Close()
+		w.Header().Set("Content-Disposition", "attachment; filename="+zipTempFile)
+		zipFileStorage, _ := os.ReadFile(zipTempFile)
+		w.Write(zipFileStorage)
+		log.Printf("批量下载文件压缩包：%s", zipTempFile)
+		// TODO 删除ZIP临时文件
+	}
 }
 
 // 删除文件

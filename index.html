@@ -1,4 +1,5 @@
 <!--页面展示文件列表，提供上传文件和下载文件的功能，支持写入文本保存到文件-->
+<!--页面布局：包括三个大的部分：复制文本、上传文件、下载文件-->
 <!--TODO 调整页面布局-->
 <!--TODO 分别适配手机和电脑-->
 <html>
@@ -6,7 +7,7 @@
         <meta charset="utf-8"/>
         <meta name="viewport" content="width=device-width,initial-scale=1.0,
         minimum-scale=1.0,maximum-scale=1.0,user-scalable=yes"/>
-        <title>电脑手机互传工具</title>
+        <title>文件传输助手</title>
         <style>
             .div{
                 float: left;
@@ -48,12 +49,24 @@
             function delete_files(){
                 window.location.href = "/deleteFiles"
             }
+            // 一次性下载所有勾选的文件
+            // 获取所有复选框勾选的文件名，通过iframe点击对应下载链接
+            // function download_selected_files(){
+            //     var files = document.getElementsByName("selectedFile")
+            //     for (i=0; i<files.length; i++){
+            //         if (files[i].checked){
+            //             request = "/downloadFile/" + files[i].value
+            //             var a = document.createElement("a")
+            //             a.href = request
+            //             a.click()
+            //         }
+            //     }
+            // }
         </script>
     </head>
     <body>
-        <h1>电脑手机互传工具</h1>
-        <!--文本填充框-->
-        <!--提交按钮-->
+        <h1>文件传输助手</h1>
+        <!--第一部分：复制文本-->
         <div>
             <div class="div">复制文本：</div>
             <div class="div">
@@ -74,9 +87,8 @@
             </div>
         </div>
         <hr class="clear" align="left">
+        <!--第二部分：上传文件-->
         <div class="clear">
-            <!--上传文件按钮-->
-            <!--提交按钮-->
             <div class="div">上传文件：</div>
             <div class="div">
                 <form action="/uploadFile" method="POST" enctype="multipart/form-data">
@@ -86,33 +98,43 @@
                     <input type="button" value="清空文件列表" onclick="delete_files()">
                 </form>
                 <!--TODO 多个文件上传-->
-                <!--TODO 一键下载-->
                 <!--TODO 显示文件上传进度条-->
             </div>
         </div>
-        <!--展示的表格-->
+        <!--第三部分：下载文件-->
         <div class="clear">
-            <table class="margin">
-                <tr>
-                    <th>文件名</th>
-                    <th>大小</th>
-                    <th>修改时间</th>
-                    <th>操作</th>
-                </tr>
-                <!--模板中的.代表变量本身-->
-                {{range $idx,$v := .Files}}
-                <tr>
-                    <td>{{$v.Name}}</td>
-                    <td>{{$v.Size}}</td>
-                    <!--FIXME 时间格式化-->
-                    <td>{{printf "%-19.19s" $v.Time}}</td>
-                    <td>
-                        <a href="/downloadFile/{{$v.Name}}" download="{{$v.Name}}">下载</a>
-                        <a href="/deleteFile/{{$v.Name}}">删除</a>
-                    </td>
-                </tr>
-                {{end}}
-            </table>
+            <!--onsubmit检查没有勾选的情况-->
+            <form action="/downloadSelectedFiles" method="POST">
+                <table class="margin">
+                    <tr>
+                        <th></th>
+                        <th>文件名</th>
+                        <th>大小</th>
+                        <th>修改时间</th>
+                        <th>操作</th>
+                    </tr>
+                    <!--模板中的.代表变量本身-->
+                    {{range $idx,$v := .Files}}
+                    <tr>
+                        <td><input type="checkbox" name="selectedFile" value="{{$v.Name}}"/></td>
+                        <td>{{$v.Name}}</td>
+                        <td>{{$v.Size}}</td>
+                        <!--FIXME 时间格式化-->
+                        <td>{{printf "%-19.19s" $v.Time}}</td>
+                        <td>
+                            <a href="/downloadFile/{{$v.Name}}" download="{{$v.Name}}">下载</a>
+                            <a href="/deleteFile/{{$v.Name}}">删除</a>
+                        </td>
+                    </tr>
+                    {{end}}
+                </table>
+                <!--TODO 全选，全不选按钮-->
+                <input type="button" value="全选">
+                <!--TODO 支持勾选下载-->
+                <!--把勾选的文件打包后，下载压缩包-->
+                <input type="submit" value="批量下载">
+            </form>
         </div>
+        <!--分页（暂不考虑）-->
     </body>
 </html>
